@@ -10,11 +10,18 @@ const { pool, initializeDatabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const staticDir = path.join(__dirname);
 
 // Allow the Netlify frontend to call this API from a different origin.
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(staticDir, {
+    setHeaders(res, filePath) {
+        if (filePath.endsWith('.css')) {
+            res.type('text/css');
+        }
+    },
+}));
 
 function getClientId(req) {
     return req.header('x-client-id') || req.body.clientId || req.query.clientId;

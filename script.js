@@ -82,6 +82,11 @@ function appendMessage(role, content) {
 
 async function loadSessions() {
     const response = await fetch(getApiUrl(`/api/sessions?clientId=${encodeURIComponent(clientId)}`));
+
+    if (!response.ok) {
+        throw new Error('Failed to load sessions.');
+    }
+
     const data = await response.json();
 
     // Keep a local copy so the rubric has explicit JSON storage usage.
@@ -100,6 +105,11 @@ async function loadSessionMessages(sessionId) {
     saveCurrentSession();
 
     const response = await fetch(getApiUrl(`/api/sessions/${sessionId}/messages?clientId=${encodeURIComponent(clientId)}`));
+
+    if (!response.ok) {
+        throw new Error('Failed to load session messages.');
+    }
+
     const data = await response.json();
 
     messages.innerHTML = '';
@@ -238,7 +248,9 @@ newSessionB.addEventListener('click', createNewSession);
 
 // Run setup after classes exist so cached sessions can be rendered safely.
 hydrateSessionState();
-loadSessions();
+loadSessions().catch((error) => {
+    appendMessage('assistant', error.message);
+});
 createNewSession();
 
 
