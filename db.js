@@ -18,10 +18,16 @@ async function initializeDatabase() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS chat_sessions_js_project (
             id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL DEFAULT 'anonymous',
             title TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+    `);
+
+    await pool.query(`
+        ALTER TABLE chat_sessions_js_project
+        ADD COLUMN IF NOT EXISTS client_id TEXT NOT NULL DEFAULT 'anonymous'
     `);
 
     // Messages stay separate so one session can hold the full conversation.

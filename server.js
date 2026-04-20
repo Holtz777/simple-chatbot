@@ -16,14 +16,25 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+function getClientId(req) {
+    return req.header('x-client-id') || req.body.clientId || req.query.clientId;
+}
+
 // The sidebar only needs session metadata, not the full message list.
-app.get('/api/sessions', async (_req, res) => {
+app.get('/api/sessions', async (req, res) => {
+    const clientId = getClientId(req);
+
+    if (!clientId) {
+        return res.status(400).json({ error: 'Client id is required.' });
+    }
+
     try {
         const result = await pool.query(`
             SELECT id, title, created_at, updated_at
             FROM chat_sessions_js_project
+            WHERE client_id = $1
             ORDER BY updated_at DESC, created_at DESC
-        `);
+        `, [clientId]);
 
         res.json(result.rows);
     } catch (error) {
@@ -33,15 +44,26 @@ app.get('/api/sessions', async (_req, res) => {
 });
 
 app.get('/api/sessions/:sessionId/messages', async (req, res) => {
+    const clientId = getClientId(req);
+
+    if (!clientId) {
+        return res.status(400).json({ error: 'Client id is required.' });
+    }
+
     try {
         const result = await pool.query(
             `
                 SELECT role, content, created_at
                 FROM chat_messages_js_project
                 WHERE session_id = $1
+                AND EXISTS (
+                    SELECT 1
+                    FROM chat_sessions_js_project
+                    WHERE id = $1 AND client_id = $2
+                )
                 ORDER BY created_at ASC, id ASC
             `,
-            [req.params.sessionId]
+            [req.params.sessionId, clientId]
         );
 
         res.json(result.rows);
@@ -52,7 +74,11 @@ app.get('/api/sessions/:sessionId/messages', async (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
-    const { sessionId, message } = req.body;
+    const { sessionId, message, clientId } = req.body;
+
+    if (!clientId) {
+        return res.status(400).json({ error: 'Client id is required.' });
+    }
 
     if (!message || !message.trim()) {
         return res.status(400).json({ error: 'Message is required.' });
@@ -64,14 +90,14 @@ app.post('/api/chat', async (req, res) => {
     try {
         // A fresh chat gets its session row before the first message is saved.
         const existingSession = await pool.query(
-            'SELECT id, title FROM chat_sessions_js_project WHERE id = $1',
-            [currentSessionId]
+            'SELECT id, title FROM chat_sessions_js_project WHERE id = $1 AND client_id = $2',
+            [currentSessionId, clientId]
         );
 
         if (existingSession.rowCount === 0) {
             await pool.query(
-                'INSERT INTO chat_sessions_js_project (id, title) VALUES ($1, $2)',
-                [currentSessionId, 'New session']
+                'INSERT INTO chat_sessions_js_project (id, client_id, title) VALUES ($1, $2, $3)',
+                [currentSessionId, clientId, 'New session']
             );
         }
 
@@ -85,18 +111,18 @@ app.post('/api/chat', async (req, res) => {
                 `
                     UPDATE chat_sessions_js_project
                     SET title = $2, updated_at = NOW()
-                    WHERE id = $1
+                    WHERE id = $1 AND client_id = $3
                 `,
-                [currentSessionId, buildSessionTitle(trimmedMessage)]
+                [currentSessionId, buildSessionTitle(trimmedMessage), clientId]
             );
         } else {
             await pool.query(
                 `
                     UPDATE chat_sessions_js_project
                     SET updated_at = NOW()
-                    WHERE id = $1
+                    WHERE id = $1 AND client_id = $2
                 `,
-                [currentSessionId]
+                [currentSessionId, clientId]
             );
         }
 
@@ -122,9 +148,9 @@ app.post('/api/chat', async (req, res) => {
             `
                 UPDATE chat_sessions_js_project
                 SET updated_at = NOW()
-                WHERE id = $1
+                WHERE id = $1 AND client_id = $2
             `,
-            [currentSessionId]
+            [currentSessionId, clientId]
         );
 
         res.json({ sessionId: currentSessionId, reply });
@@ -137,7 +163,11 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.patch('/api/sessions/:sessionId', async (req, res) => {
-    const { title } = req.body;
+    const { title, clientId } = req.body;
+
+    if (!clientId) {
+        return res.status(400).json({ error: 'Client id is required.' });
+    }
 
     if (!title || !title.trim()) {
         return res.status(400).json({ error: 'Title is required.' });
@@ -148,10 +178,10 @@ app.patch('/api/sessions/:sessionId', async (req, res) => {
             `
                 UPDATE chat_sessions_js_project
                 SET title = $2, updated_at = NOW()
-                WHERE id = $1
+                WHERE id = $1 AND client_id = $3
                 RETURNING id, title, created_at, updated_at
             `,
-            [req.params.sessionId, title.trim()]
+            [req.params.sessionId, title.trim(), clientId]
         );
 
         if (result.rowCount === 0) {

@@ -8,9 +8,11 @@ const sessionsList = document.getElementById('sessionsList');
 const STORAGE_KEYS = {
     sessions: 'chatSessionsJsProject',
     currentSession: 'chatCurrentSessionJsProject',
+    clientId: 'chatClientIdJsProject',
 };
 
 let currentSessionId = null;
+const clientId = getClientId();
 
 chatForm.addEventListener('submit', insertMessage);
 newSessionB.addEventListener('click', createNewSession);
@@ -41,6 +43,7 @@ async function insertMessage(event) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+                clientId,
                 sessionId: currentSessionId,
                 message: content,
             }),
@@ -84,7 +87,7 @@ function appendMessage(role, content) {
 }
 
 async function loadSessions() {
-    const response = await fetch(getApiUrl('/api/sessions'));
+    const response = await fetch(getApiUrl(`/api/sessions?clientId=${encodeURIComponent(clientId)}`));
     const data = await response.json();
 
     // Keep a local copy so the rubric has explicit JSON storage usage.
@@ -102,7 +105,7 @@ async function loadSessionMessages(sessionId) {
     currentSessionId = sessionId;
     saveCurrentSession();
 
-    const response = await fetch(getApiUrl(`/api/sessions/${sessionId}/messages`));
+    const response = await fetch(getApiUrl(`/api/sessions/${sessionId}/messages?clientId=${encodeURIComponent(clientId)}`));
     const data = await response.json();
 
     messages.innerHTML = '';
@@ -145,6 +148,19 @@ function hydrateSessionState() {
     });
 
     highlightCurrentSession();
+}
+
+function getClientId() {
+    const savedClientId = localStorage.getItem(STORAGE_KEYS.clientId);
+
+    if (savedClientId) {
+        return savedClientId;
+    }
+
+    // One browser gets one lightweight identifier so sessions stay separated.
+    const nextClientId = crypto.randomUUID();
+    localStorage.setItem(STORAGE_KEYS.clientId, nextClientId);
+    return nextClientId;
 }
 
 function saveCurrentSession() {
@@ -196,7 +212,7 @@ class SessionItem extends HistoryItem {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ title: nextTitle.trim() }),
+            body: JSON.stringify({ title: nextTitle.trim(), clientId }),
         });
 
         const data = await response.json();
