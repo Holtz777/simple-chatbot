@@ -30,6 +30,21 @@ async function initializeDatabase() {
         ADD COLUMN IF NOT EXISTS client_id TEXT NOT NULL DEFAULT 'anonymous'
     `);
 
+    await pool.query(`
+        ALTER TABLE chat_sessions_js_project
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    `);
+
+    await pool.query(`
+        ALTER TABLE chat_sessions_js_project
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    `);
+
+    await pool.query(`
+        ALTER TABLE chat_sessions_js_project
+        ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'New session'
+    `);
+
     // Messages stay separate so one session can hold the full conversation.
     await pool.query(`
         CREATE TABLE IF NOT EXISTS chat_messages_js_project (
@@ -43,6 +58,11 @@ async function initializeDatabase() {
                 REFERENCES chat_sessions_js_project(id)
                 ON DELETE CASCADE
         )
+    `);
+
+    await pool.query(`
+        ALTER TABLE chat_messages_js_project
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     `);
 }
 
