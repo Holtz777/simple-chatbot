@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="layout">
+        <aside class="session-history">
+            <h2>History</h2>
+            <ul id="sessionsList">
+
+            </ul>
+        </aside>
+
+        <main class="chat-container">
+            <div class="chat-header">
+                <h1>Talk to the chatbot</h1>
+                <button class="new-session-button" id="newSessionB" type="button" aria-label="New session">+</button>
+            </div>
+
+            <div class="messages" id="messages"></div>
+
+            <form class="chat-box" id="chatForm">
+                <input  name="input" type="text" id="inputB" placeholder="Type your message...">
+                <button  id="sendB" type="submit" aria-label="Send message">
+                    <span class="send-icon"></span>
+                </button>
+            </form>
+        </main>
+    </div>
+</body>
+</html>
