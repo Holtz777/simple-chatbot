@@ -11,16 +11,10 @@ const STORAGE_KEYS = {
     clientId: 'chatClientIdJsProject',
 };
 
+const API_BASE_URL = window.API_BASE_URL || '';
+
 let currentSessionId = null;
 const clientId = getClientId();
-
-chatForm.addEventListener('submit', insertMessage);
-newSessionB.addEventListener('click', createNewSession);
-
-// Load saved chats right away, but start with an empty draft selected.
-hydrateSessionState();
-loadSessions();
-createNewSession();
 
 async function insertMessage(event) {
     event.preventDefault();
@@ -126,11 +120,12 @@ function highlightCurrentSession() {
 }
 
 function getApiUrl(path) {
-    // Use the VPS API in production and keep localhost for local testing.
-    const isLocalHost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
-    const apiBaseUrl = isLocalHost ? 'http://127.0.0.1:3000' : 'http://100.90.73.101:3000';
+    if (API_BASE_URL) {
+        return `${API_BASE_URL}${path}`;
+    }
 
-    return `${apiBaseUrl}${path}`;
+    // Keep relative paths when frontend and backend are served from the same origin.
+    return path;
 }
 
 function hydrateSessionState() {
@@ -237,5 +232,13 @@ function saveCachedSession(updatedSession) {
 
     localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(nextSessions));
 }
+
+chatForm.addEventListener('submit', insertMessage);
+newSessionB.addEventListener('click', createNewSession);
+
+// Run setup after classes exist so cached sessions can be rendered safely.
+hydrateSessionState();
+loadSessions();
+createNewSession();
 
 

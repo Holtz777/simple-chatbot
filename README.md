@@ -67,10 +67,29 @@ Start the backend server:
 npm start
 ```
 
-Then open `index.html` in the browser or serve the frontend with a static host.
+Then open:
+
+```bash
+http://localhost:3000
+```
 
 ## Notes
 
 - This project uses environment variables for the Groq API key and PostgreSQL connection.
 - The `.env` file should not be pushed to GitHub.
-- For production deployment, the backend should use HTTPS.
+- The app is designed to run as a single Express service, which makes deployment on Render straightforward.
+
+## Deploying to Render
+
+1. Push the repository to GitHub.
+2. Create a new `Web Service` in Render.
+3. Connect the `simple-chatbot` repository.
+4. Use these settings:
+
+- Build Command: `npm install`
+- Start Command: `npm start`
+
+5. Add the environment variables from your local `.env` file in the Render dashboard.
+6. Deploy the service.
+
+After deployment, Render will host both the frontend and backend from the same URL.
