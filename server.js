@@ -24,7 +24,7 @@ app.use(express.static(staticDir, {
 }));
 
 function getClientId(req) {
-    return req.header('x-client-id') || req.body.clientId || req.query.clientId;
+    return req.header('x-client-id') || req.body?.clientId || req.query?.clientId;
 }
 
 // The sidebar only needs session metadata, not the full message list.
